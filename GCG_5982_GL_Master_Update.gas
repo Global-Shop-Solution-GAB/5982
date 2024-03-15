@@ -1,0 +1,358 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Function.Intrinsic.Debug.SetScriptVersion("1.0.279","True")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Author: GT
+'Hook: 34310
+'Script to Update Account Net change Values from BI_NET_CHANGE to GL_MASTER_current year and 3 years Back
+'Modified by JZ
+Variable.Local.sAmtNetChange.Declare(String)
+Variable.Local.sAmtNetChgPeriod.Declare(String)
+Variable.Local.sAmtPeriod.Declare(String)
+Variable.Local.sSelect1.Declare(String)
+V.local.sselectCur.Declare(String)
+V.local.sselectPre.Declare(String)
+V.local.sselectPre2.Declare(String)
+V.local.sselectPre3.Declare(String)
+Variable.Local.sSelectAcctcur.Declare(String)
+Variable.Local.sSelectAcctpre.Declare(String)
+Variable.Local.sSelectAcctpre2.Declare(String)
+Variable.Local.sSelectAcctpre3.Declare(String)
+Variable.Local.sAcct.Declare(String)
+Variable.Local.sUpdate.Declare(String)
+Variable.Local.sPeriod.Declare(String)
+Variable.Local.sPeriod2.Declare(String)
+Variable.Local.iCT.Declare(Float)
+Variable.Local.sCount.Declare(String)
+Variable.Local.LIncrement.Declare(Float)
+Variable.Local.LDiv.Declare(Float)
+Variable.Local.LPct.Declare(Float)
+Variable.Local.sAccDesc.Declare(String)
+Variable.Local.i.Declare(Long)
+Variable.Local.sGLcur.Declare(String)
+Variable.Local.sGLpre.Declare(String)
+Variable.Local.sGLpre2.Declare(String)
+Variable.Local.sGLpre3.Declare(String)
+Variable.Local.sNetChangecur.Declare(String)
+Variable.Local.sNetChangepre.Declare(String)
+Variable.Local.sNetChangepre2.Declare(String)
+Variable.Local.sNetChangepre3.Declare(String)
+Variable.Local.sBegBalcur.Declare(String)
+Variable.Local.sBegBalpre.Declare(String)
+Variable.Local.sBegBalpre2.Declare(String)
+Variable.Local.sBegBalpre3.Declare(String)
+Variable.Local.sresult.Declare(String)
+V.LoCAL.stemp.Declare(String)
+V.Local.sYear.Declare(String)
+Variable.local.bTablecur.Declare(Boolean)
+Variable.local.bTablepre.Declare(Boolean)
+Variable.local.bTablepre2.Declare(Boolean)
+Variable.local.bTablepre3.Declare(Boolean)
+V.Local.sCurrentYear.Declare(String)
+V.Local.sPreYear.Declare(String)
+V.Local.sPre2Year.Declare(String)
+V.Local.sPre3Year.Declare(String)
+V.Local.sCurrentYearTable.Declare(String)
+V.Local.sPreYearTable.Declare(String)
+V.Local.sPre2YearTable.Declare(String)
+V.Local.sPre3YearTable.Declare(String)
+V.Local.sCreateTable.Declare(String)
+V.Local.sCreateIndex1.Declare(String)
+V.Local.sCreateIndex2.Declare(String)
+V.local.deleteCur.Declare(String)
+V.local.deletePre.Declare(String)
+V.local.deletePre2.Declare(String)
+V.local.deletePre3.Declare(String)
+
+Function.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+
+
+
+V.Local.sYear.Set("select max(start_year) as CurrentYear from GL_CALENDAR")
+F.ODBC.Connection!conx.OpenRecordsetRO("Year",V.Local.sYear)
+V.Local.sCurrentYear.Set(V.ODBC.conx!Year.FieldValString!CurrentYear)
+F.Intrinsic.Math.Sub(V.Local.sCurrentYear,1,V.Local.sPreYear)
+F.Intrinsic.Math.Sub(V.Local.sCurrentYear,2,V.Local.sPre2Year)
+F.Intrinsic.Math.Sub(V.Local.sCurrentYear,3,V.Local.sPre3Year)
+
+F.Intrinsic.String.Concat("GL_MASTER_",V.Local.sCurrentYear,V.Local.sCurrentYearTable)
+Function.ODBC.Connection!conx.TableExists(V.Local.sCurrentYearTable,Variable.local.bTablecur)
+
+F.Intrinsic.String.Concat("GL_MASTER_",V.Local.sPreYear,V.Local.sPreYearTable)
+Function.ODBC.Connection!conx.TableExists(V.Local.sPreYearTable,Variable.local.bTablepre)
+
+F.Intrinsic.String.Concat("GL_MASTER_",V.Local.sPre2Year,V.Local.sPre2YearTable)
+Function.ODBC.Connection!conx.TableExists(V.Local.sPre2YearTable,Variable.local.bTablepre2)
+
+F.Intrinsic.String.Concat("GL_MASTER_",V.Local.sPre3Year,V.Local.sPre3YearTable)
+Function.ODBC.Connection!conx.TableExists(V.Local.sPre3YearTable,Variable.local.bTablepre3)
+
+F.Intrinsic.Control.If(V.Local.bTablecur,"=",False)
+	F.Intrinsic.String.Concat("Create TABLE ",V.Local.sCurrentYearTable,"(GL_ACCOUNT CHAR(15),GL_IDENT CHAR(1),DESC_ACCOUNT CHAR(30),FLAG_1 CHAR(1),FLAG_2 CHAR(1),FLAG_3 CHAR(1),FLAG_4 CHAR(1),FLAG_5 CHAR(1),FLAG_6 CHAR(1),AMT_BALANCE_BEG NUMERIC(12,2),AMT_NET_CHANGE_1 NUMERIC(12,2),AMT_NET_CHANGE_2 NUMERIC(12,2),AMT_NET_CHANGE_3 NUMERIC(12,2),AMT_NET_CHANGE_4 NUMERIC(12,2),AMT_NET_CHANGE_5 NUMERIC(12,2),AMT_NET_CHANGE_6 NUMERIC(12,2),AMT_NET_CHANGE_7 NUMERIC(12,2),AMT_NET_CHANGE_8 NUMERIC(12,2),AMT_NET_CHANGE_9 NUMERIC(12,2),AMT_NET_CHANGE_10 NUMERIC(12,2),AMT_NET_CHANGE_11 NUMERIC(12,2),AMT_NET_CHANGE_12 NUMERIC(12,2),AMT_NET_CHANGE_13 NUMERIC(12,2),FILLER1 CHAR(30))",V.Local.sCreateTable)
+	F.intrinsic.string.Concat("Create UNIQUE NOT MODIFIABLE INDEX GL_MASTER_",V.Local.sCurrentYear,"00 ON GL_MASTER_",V.Local.sCurrentYear,"(GL_ACCOUNT, GL_IDENT)",V.Local.sCreateIndex1)
+	F.intrinsic.string.Concat("Create INDEX GL_MASTER_",V.Local.sCurrentYear,"K01 ON GL_MASTER_",V.Local.sCurrentYear,"(GL_ACCOUNT)",V.Local.sCreateIndex2)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateTable)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateIndex1)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateIndex2)
+F.Intrinsic.Control.Endif
+
+F.Intrinsic.Control.If(V.Local.bTablepre,"=",False)
+	F.Intrinsic.String.Concat("Create TABLE ",V.Local.sPreYearTable,"(GL_ACCOUNT CHAR(15),GL_IDENT CHAR(1),DESC_ACCOUNT CHAR(30),FLAG_1 CHAR(1),FLAG_2 CHAR(1),FLAG_3 CHAR(1),FLAG_4 CHAR(1),FLAG_5 CHAR(1),FLAG_6 CHAR(1),AMT_BALANCE_BEG NUMERIC(12,2),AMT_NET_CHANGE_1 NUMERIC(12,2),AMT_NET_CHANGE_2 NUMERIC(12,2),AMT_NET_CHANGE_3 NUMERIC(12,2),AMT_NET_CHANGE_4 NUMERIC(12,2),AMT_NET_CHANGE_5 NUMERIC(12,2),AMT_NET_CHANGE_6 NUMERIC(12,2),AMT_NET_CHANGE_7 NUMERIC(12,2),AMT_NET_CHANGE_8 NUMERIC(12,2),AMT_NET_CHANGE_9 NUMERIC(12,2),AMT_NET_CHANGE_10 NUMERIC(12,2),AMT_NET_CHANGE_11 NUMERIC(12,2),AMT_NET_CHANGE_12 NUMERIC(12,2),AMT_NET_CHANGE_13 NUMERIC(12,2),FILLER1 CHAR(30))",V.Local.sCreateTable)
+	F.intrinsic.string.Concat("Create UNIQUE NOT MODIFIABLE INDEX GL_MASTER_",V.Local.sPreYear,"00 ON GL_MASTER_",V.Local.sPreYear,"(GL_ACCOUNT, GL_IDENT)",V.Local.sCreateIndex1)
+	F.intrinsic.string.Concat("Create INDEX GL_MASTER_",V.Local.sPreYear,"K01 ON GL_MASTER_",V.Local.sPreYear,"(GL_ACCOUNT)",V.Local.sCreateIndex2)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateTable)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateIndex1)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateIndex2)
+F.Intrinsic.Control.Endif
+
+F.Intrinsic.Control.If(V.Local.bTablepre2,"=",False)
+	F.Intrinsic.String.Concat("Create TABLE ",V.Local.sPre2YearTable,"(GL_ACCOUNT CHAR(15),GL_IDENT CHAR(1),DESC_ACCOUNT CHAR(30),FLAG_1 CHAR(1),FLAG_2 CHAR(1),FLAG_3 CHAR(1),FLAG_4 CHAR(1),FLAG_5 CHAR(1),FLAG_6 CHAR(1),AMT_BALANCE_BEG NUMERIC(12,2),AMT_NET_CHANGE_1 NUMERIC(12,2),AMT_NET_CHANGE_2 NUMERIC(12,2),AMT_NET_CHANGE_3 NUMERIC(12,2),AMT_NET_CHANGE_4 NUMERIC(12,2),AMT_NET_CHANGE_5 NUMERIC(12,2),AMT_NET_CHANGE_6 NUMERIC(12,2),AMT_NET_CHANGE_7 NUMERIC(12,2),AMT_NET_CHANGE_8 NUMERIC(12,2),AMT_NET_CHANGE_9 NUMERIC(12,2),AMT_NET_CHANGE_10 NUMERIC(12,2),AMT_NET_CHANGE_11 NUMERIC(12,2),AMT_NET_CHANGE_12 NUMERIC(12,2),AMT_NET_CHANGE_13 NUMERIC(12,2),FILLER1 CHAR(30))",V.Local.sCreateTable)
+	F.intrinsic.string.Concat("Create UNIQUE NOT MODIFIABLE INDEX GL_MASTER_",V.Local.sPre2Year,"00 ON GL_MASTER_",V.Local.sPre2Year,"(GL_ACCOUNT, GL_IDENT)",V.Local.sCreateIndex1)
+	F.intrinsic.string.Concat("Create INDEX GL_MASTER_",V.Local.sPre2Year,"K01 ON GL_MASTER_",V.Local.sPre2Year,"(GL_ACCOUNT)",V.Local.sCreateIndex2)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateTable)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateIndex1)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateIndex2)
+F.Intrinsic.Control.Endif
+
+F.Intrinsic.Control.If(V.Local.bTablepre3,"=",False)
+	F.Intrinsic.String.Concat("Create TABLE ",V.Local.sPre3YearTable,"(GL_ACCOUNT CHAR(15),GL_IDENT CHAR(1),DESC_ACCOUNT CHAR(30),FLAG_1 CHAR(1),FLAG_2 CHAR(1),FLAG_3 CHAR(1),FLAG_4 CHAR(1),FLAG_5 CHAR(1),FLAG_6 CHAR(1),AMT_BALANCE_BEG NUMERIC(12,2),AMT_NET_CHANGE_1 NUMERIC(12,2),AMT_NET_CHANGE_2 NUMERIC(12,2),AMT_NET_CHANGE_3 NUMERIC(12,2),AMT_NET_CHANGE_4 NUMERIC(12,2),AMT_NET_CHANGE_5 NUMERIC(12,2),AMT_NET_CHANGE_6 NUMERIC(12,2),AMT_NET_CHANGE_7 NUMERIC(12,2),AMT_NET_CHANGE_8 NUMERIC(12,2),AMT_NET_CHANGE_9 NUMERIC(12,2),AMT_NET_CHANGE_10 NUMERIC(12,2),AMT_NET_CHANGE_11 NUMERIC(12,2),AMT_NET_CHANGE_12 NUMERIC(12,2),AMT_NET_CHANGE_13 NUMERIC(12,2),FILLER1 CHAR(30))",V.Local.sCreateTable)
+	F.intrinsic.string.Concat("Create UNIQUE NOT MODIFIABLE INDEX GL_MASTER_",V.Local.sPre3Year,"00 ON GL_MASTER_",V.Local.sPre3Year,"(GL_ACCOUNT, GL_IDENT)",V.Local.sCreateIndex1)
+	F.intrinsic.string.Concat("Create INDEX GL_MASTER_",V.Local.sPre3Year,"K01 ON GL_MASTER_",V.Local.sPre3Year,"(GL_ACCOUNT)",V.Local.sCreateIndex2)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateTable)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateIndex1)
+	F.ODBC.Connection!conx.Execute(V.Local.sCreateIndex2)
+F.Intrinsic.Control.Endif
+
+F.Intrinsic.string.concat("Delete FROM GL_MASTER_",V.Local.sCurrentYear,V.local.deleteCur)
+F.Intrinsic.string.concat("Delete FROM GL_MASTER_",V.Local.sPreYear,V.local.deletePre)
+F.Intrinsic.string.concat("Delete FROM GL_MASTER_",V.Local.sPre2Year,V.local.deletePre2)
+F.Intrinsic.string.concat("Delete FROM GL_MASTER_",V.Local.sPre3Year,V.local.deletePre3)
+
+'delete all accounts from GL_Master_XXXX tabl
+F.ODBC.Connection!conx.Execute(V.local.deleteCur)
+F.ODBC.Connection!conx.Execute(V.local.deletePre)
+F.ODBC.Connection!conx.Execute(V.local.deletePre2)
+F.ODBC.Connection!conx.Execute(V.local.deletePre3)
+
+Function.Intrinsic.String.Concat("select GL_ACCOUNT, DESCR  FROM GL_MASTER ORDER BY GL_ACCOUNT DESC","",V.Local.sSelect1)
+Function.Intrinsic.String.Concat("select * FROM GL_MASTER_",V.Local.sCurrentYear,"",V.local.sselectCur)
+Function.Intrinsic.String.Concat("select * FROM GL_MASTER_",V.Local.sPreYear,"",V.local.sselectPre)
+Function.Intrinsic.String.Concat("select * FROM GL_MASTER_",V.Local.sPre2Year,"",V.local.sselectPre2)
+Function.Intrinsic.String.Concat("select * FROM GL_MASTER_",V.Local.sPre3Year,"",V.local.sselectPre3)
+Function.Intrinsic.String.Concat("select count(*) as iCT from GL_MASTER","",V.Local.sCount)
+Function.ODBC.Connection!conx.OpenRecordsetRO("rstSelect",V.Local.sSelect1)
+Function.ODBC.Connection!conx.OpenRecordsetRW("rstSelectcur",V.local.sselectCur)
+Function.ODBC.Connection!conx.OpenRecordsetRW("rstSelectpre",V.local.sselectPre)
+Function.ODBC.Connection!conx.OpenRecordsetRW("rstSelectpre2",V.local.sselectPre2)
+Function.ODBC.Connection!conx.OpenRecordsetRW("rstSelectpre3",V.local.sselectPre3)
+
+Function.ODBC.Connection!conx.OpenRecordsetRO("rstCount",V.Local.sCount)
+Variable.Local.iCT.Set(V.ODBC.conx!rstCount.FieldValLong!iCT)
+
+Function.Intrinsic.control.DoUntil(V.ODBC.conx!rstSelect.EOF,"=",True)
+	Function.Intrinsic.String.Concat("Inserting Account: ",V.ODBC.conx!rstSelect.FieldValString!GL_ACCOUNT," - ",V.ODBC.conx!rstSelect.FieldValString!DESCR,V.Local.sAccDesc)
+	Function.Intrinsic.Math.Add(V.Local.LIncrement,1,V.Local.LIncrement)
+	Function.Intrinsic.Math.Div(V.Local.LIncrement,V.Local.iCT,V.local.LDiv)
+	Function.Intrinsic.Math.Mult(V.Local.LDiv,100,V.Local.LPct)
+	Function.Intrinsic.UI.InvokeWaitDialog(V.Local.sAccDesc,"Inserting Account")
+	Function.Intrinsic.UI.ChangeWaitStatus(V.Local.sAccDesc,V.Local.LPct,1,100)
+
+	Function.ODBC.conx!rstSelectcur.AddNew
+	Function.ODBC.conx!rstSelectcur.Set!GL_ACCOUNT(V.ODBC.conx!rstSelect.FieldValString!GL_ACCOUNT)
+	Function.ODBC.conx!rstSelectcur.Set!DESC_ACCOUNT(V.ODBC.conx!rstSelect.FieldValString!DESCR)
+	Function.ODBC.conx!rstSelectcur.Update
+	
+	Function.ODBC.conx!rstSelectpre.AddNew
+	Function.ODBC.conx!rstSelectpre.Set!GL_ACCOUNT(V.ODBC.conx!rstSelect.FieldValString!GL_ACCOUNT)
+	Function.ODBC.conx!rstSelectpre.Set!DESC_ACCOUNT(V.ODBC.conx!rstSelect.FieldValString!DESCR)
+	Function.ODBC.conx!rstSelectpre.Update
+
+	Function.ODBC.conx!rstSelectpre2.AddNew
+	Function.ODBC.conx!rstSelectpre2.Set!GL_ACCOUNT(V.ODBC.conx!rstSelect.FieldValString!GL_ACCOUNT)
+	Function.ODBC.conx!rstSelectpre2.Set!DESC_ACCOUNT(V.ODBC.conx!rstSelect.FieldValString!DESCR)
+	Function.ODBC.conx!rstSelectpre2.Update
+
+	Function.ODBC.conx!rstSelectpre3.AddNew
+	Function.ODBC.conx!rstSelectpre3.Set!GL_ACCOUNT(V.ODBC.conx!rstSelect.FieldValString!GL_ACCOUNT)
+	Function.ODBC.conx!rstSelectpre3.Set!DESC_ACCOUNT(V.ODBC.conx!rstSelect.FieldValString!DESCR)
+	Function.ODBC.conx!rstSelectpre3.Update
+	
+	Function.ODBC.conx!rstSelect.MoveNext
+Function.Intrinsic.Control.Loop
+
+Function.ODBC.conx!rstCount.Close
+Function.ODBC.conx!rstSelectcur.Close
+Function.ODBC.conx!rstSelectpre.Close
+Function.ODBC.conx!rstSelectpre2.Close
+Function.ODBC.conx!rstSelectpre3.Close
+F.Intrinsic.UI.CloseWaitDialog
+
+Variable.Local.i.Set(1)
+F.Intrinsic.String.Concat("select * from GL_MASTER_",V.Local.sCurrentYear,"",V.Local.sGLcur)
+F.Intrinsic.String.Concat("select * from GL_MASTER_",V.Local.sPreYear,"",V.Local.sGLPre)
+F.Intrinsic.String.Concat("select * from GL_MASTER_",V.Local.sPre2Year,"",V.Local.sGLPre2)
+F.Intrinsic.String.Concat("select * from GL_MASTER_",V.Local.sPre3Year,"",V.Local.sGLPre3)
+
+F.ODBC.Connection!conx.OpenRecordsetRW("rstBegcur",V.Local.sGLCur)
+F.ODBC.Connection!conx.OpenRecordsetRW("rstBegpre",V.Local.sGLPre)
+F.ODBC.Connection!conx.OpenRecordsetRW("rstBegpre2",V.Local.sGLPre2)
+F.ODBC.Connection!conx.OpenRecordsetRW("rstBegpre3",V.Local.sGLPre3)
+
+Variable.Local.LIncrement.Set(0)
+Variable.Local.LPct.Set(1)
+Function.Intrinsic.Control.DoUntil(V.ODBC.conx!rstBegcur.EOF,"=",True)
+	F.Intrinsic.String.Concat("select * FROM GL_BALANCES WHERE ACCT = '",V.ODBC.conx!rstBegcur.FieldValString!GL_ACCOUNT,"' AND FISCAL_YR = '",V.Local.sCurrentYear,"'",V.Local.sBegBalcur)
+	F.Intrinsic.String.Concat("select * FROM GL_BALANCES WHERE ACCT = '",V.ODBC.conx!rstBegpre.FieldValString!GL_ACCOUNT,"' AND FISCAL_YR = '",V.Local.sPreYear,"'",V.Local.sBegBalpre)
+	F.Intrinsic.String.Concat("select * FROM GL_BALANCES WHERE ACCT = '",V.ODBC.conx!rstBegpre2.FieldValTrim!GL_ACCOUNT,"' AND FISCAL_YR = '",V.Local.sPre2Year,"'",V.Local.sBegBalpre2)
+	F.Intrinsic.String.Concat("select * FROM GL_BALANCES WHERE ACCT = '",V.ODBC.conx!rstBegpre3.FieldValTrim!GL_ACCOUNT,"' AND FISCAL_YR = '",V.Local.sPre3Year,"'",V.Local.sBegBalpre3)
+	
+	F.ODBC.Connection!conx.OpenRecordsetRO("rstBIcur",V.Local.sBegBalcur)
+	F.ODBC.Connection!conx.OpenRecordsetRO("rstBIpre",V.Local.sBegBalpre)
+	F.ODBC.Connection!conx.OpenRecordsetRO("rstBIpre2",V.Local.sBegBalpre2)
+	F.ODBC.Connection!conx.OpenRecordsetRO("rstBIpre3",V.Local.sBegBalpre3)
+
+
+	Function.Intrinsic.Control.If(V.ODBC.conx!rstBIcur.EOF,"=",False)
+		F.Intrinsic.Control.AndIf(V.ODBC.conx!rstBegcur.EOF,"=",False)
+			F.ODBC.conx!rstBegcur.Set!AMT_BALANCE_BEG(V.ODBC.conx!rstBIcur.FieldValString!BEG_BAL)
+			F.ODBC.conx!rstBegcur.Update
+			F.ODBC.conx!rstBIcur.Close
+	F.Intrinsic.Control.Else
+			F.ODBC.conx!rstBIcur.Close
+	F.Intrinsic.Control.EndIf
+	
+
+	Function.Intrinsic.Control.If(V.ODBC.conx!rstBIpre.EOF,"=",False)
+		F.Intrinsic.Control.AndIf(V.ODBC.conx!rstBegpre.EOF,"=",False)
+			F.ODBC.conx!rstBegpre.Set!AMT_BALANCE_BEG(V.ODBC.conx!rstBIpre.FieldValString!BEG_BAL)
+			F.ODBC.conx!rstBegpre.Update
+			F.ODBC.conx!rstBIpre.Close
+	F.Intrinsic.Control.Else
+			F.ODBC.conx!rstBIpre.Close
+	F.Intrinsic.Control.EndIf
+	
+
+	F.Intrinsic.Control.If(V.ODBC.conx!rstBIpre2.EOF,"=",False)
+		F.Intrinsic.Control.AndIf(V.ODBC.conx!rstBegpre2.EOF,"=",False)
+			F.ODBC.conx!rstBegpre2.Set!AMT_BALANCE_BEG(V.ODBC.conx!rstBIpre2.FieldValString!BEG_BAL)
+			F.ODBC.conx!rstBegpre2.Update
+			F.ODBC.conx!rstBIpre2.Close
+	F.Intrinsic.Control.Else
+		F.ODBC.conx!rstBIpre2.Close
+	F.Intrinsic.Control.EndIf
+
+	
+	F.Intrinsic.Control.If(V.ODBC.conx!rstBIpre3.EOF,"=",False)
+		F.Intrinsic.Control.AndIf(V.ODBC.conx!rstBegpre3.EOF,"=",False)
+			F.ODBC.conx!rstBegpre3.Set!AMT_BALANCE_BEG(V.ODBC.conx!rstBIpre3.FieldValString!BEG_BAL)
+			F.ODBC.conx!rstBegpre3.Update
+			F.ODBC.conx!rstBIpre3.Close
+	F.Intrinsic.Control.Else
+		F.ODBC.conx!rstBIpre3.Close
+	F.Intrinsic.Control.EndIf
+
+		
+	Function.Intrinsic.string.Concat("Updating Account: ",V.ODBC.conx!rstBegcur.FieldValString!GL_ACCOUNT," - ",V.ODBC.conx!rstBegcur.FieldValString!DESC_ACCOUNT,V.Local.sAccDesc)
+	Function.Intrinsic.Math.Add(V.Local.LIncrement,1,V.Local.LIncrement)
+	Function.Intrinsic.Math.Div(V.Local.LIncrement,V.Local.iCT,V.local.LDiv)
+
+	'Function.Intrinsic.String.Concat(V.Local.LIncrement,"/",V.Local.iCT," = ",V.local.LDiv," * 100 =",V.Local.LPct,V.Local.sresult)
+	'Function.Intrinsic.UI.Msgbox(V.Local.sresult,V.Local.iCT)
+	Function.Intrinsic.Math.Mult(V.Local.LDiv,100,V.Local.LPct)
+	Function.Intrinsic.UI.InvokeWaitDialog(V.Local.sAccDesc,"Updating Account")
+	Function.Intrinsic.UI.ChangeWaitStatus(V.Local.sAccDesc,V.Local.LPct,1,100)
+
+	'F.Intrinsic.UI.Msgbox("account insert","begin")
+
+	Function.Intrinsic.Control.For(V.Local.i,1,13,1)
+		Function.Intrinsic.Control.If(V.Local.i,"<",10)
+			Function.Intrinsic.String.Concat("select NET_CHANGE FROM BI_NET_CHANGE WHERE GL_ACCOUNT = '",V.ODBC.conx!rstBegpre2.FieldValString!GL_ACCOUNT,"' AND PERIOD = '0",V.Local.i,"' AND FISCAL_YEAR = '",V.Local.sPre2Year,"'",V.Local.sNetChangepre2)
+			Function.Intrinsic.String.Concat("select NET_CHANGE FROM BI_NET_CHANGE WHERE GL_ACCOUNT = '",V.ODBC.conx!rstBegpre3.FieldValString!GL_ACCOUNT,"' AND PERIOD = '0",V.Local.i,"' AND FISCAL_YEAR = '",V.Local.sPre3Year,"'",V.Local.sNetChangepre3)
+			Function.Intrinsic.String.Concat("select * FROM BI_NET_CHANGE WHERE GL_ACCOUNT = '",V.ODBC.conx!rstBegcur.FieldValTrim!GL_ACCOUNT,"' AND PERIOD = '0",V.Local.i,"' AND FISCAL_YEAR = '",V.Local.sCurrentYear,"'",V.Local.sNetChangecur)
+			Function.Intrinsic.String.Concat("select * FROM BI_NET_CHANGE WHERE GL_ACCOUNT = '",V.ODBC.conx!rstBegpre.FieldValTrim!GL_ACCOUNT,"' AND PERIOD = '0",V.Local.i,"' AND FISCAL_YEAR = '",V.Local.spreYear,"'",V.Local.sNetChangepre)
+		Function.Intrinsic.Control.Else
+			Function.Intrinsic.String.Concat("select * FROM BI_NET_CHANGE WHERE GL_ACCOUNT = '",V.ODBC.conx!rstBegpre2.FieldValString!GL_ACCOUNT,"' AND PERIOD = '",V.Local.i,"' AND FISCAL_YEAR = '",V.Local.sPre2Year,"'",V.Local.sNetChangepre2)
+			Function.Intrinsic.String.Concat("select * FROM BI_NET_CHANGE WHERE GL_ACCOUNT = '",V.ODBC.conx!rstBegpre3.FieldValString!GL_ACCOUNT,"' AND PERIOD = '",V.Local.i,"' AND FISCAL_YEAR = '",V.Local.sPre3Year,"'",V.Local.sNetChangepre3)
+			Function.Intrinsic.String.Concat("select * FROM BI_NET_CHANGE WHERE GL_ACCOUNT = '",V.ODBC.conx!rstBegcur.FieldValTrim!GL_ACCOUNT,"' AND PERIOD = '",V.Local.i,"' AND FISCAL_YEAR = '",V.Local.sCurrentYear,"'",V.Local.sNetChangecur)
+			Function.Intrinsic.String.Concat("select * FROM BI_NET_CHANGE WHERE GL_ACCOUNT = '",V.ODBC.conx!rstBegpre.FieldValTrim!GL_ACCOUNT,"' AND PERIOD = '",V.Local.i,"' AND FISCAL_YEAR = '",V.Local.spreYear,"'",V.Local.sNetChangepre)
+		Function.Intrinsic.Control.EndIf
+
+		Function.ODBC.Connection!conx.OpenRecordsetRO("rstNetChgcur",V.Local.sNetChangecur)
+		Function.ODBC.Connection!conx.OpenRecordsetRO("rstNetChgpre",V.Local.sNetChangepre)
+		Function.ODBC.Connection!conx.OpenRecordsetRO("rstNetChgpre2",V.Local.sNetChangepre2)
+		Function.ODBC.Connection!conx.OpenRecordsetRO("rstNetChgpre3",V.Local.sNetChangepre3)
+
+		Function.Intrinsic.Control.If(V.ODBC.conx!rstBegcur.EOF,"=",False)
+			Function.Intrinsic.Control.If(V.ODBC.conx!rstNetChgcur.EOF,"=",False)
+				F.Odbc.conx!rstBegcur.Set!AMT_NET_CHANGE_[V.Local.i](V.ODBC.conx!rstNetChgcur.FieldValString!NET_CHANGE)
+				F.ODBC.conx!rstBegcur.Update
+				Function.ODBC.conx!rstNetChgcur.Close
+			F.Intrinsic.Control.Else
+				Function.ODBC.conx!rstNetChgcur.Close
+			Function.Intrinsic.Control.EndIf
+		Function.Intrinsic.Control.EndIf
+
+	
+		Function.Intrinsic.Control.If(V.ODBC.conx!rstBegpre.EOF,"=",False)
+			Function.Intrinsic.Control.If(V.ODBC.conx!rstNetChgpre.EOF,"=",False)
+				F.Odbc.conx!rstBegpre.Set!AMT_NET_CHANGE_[V.Local.i](V.ODBC.conx!rstNetChgpre.FieldValString!NET_CHANGE)
+				F.ODBC.conx!rstBegpre.Update
+				Function.ODBC.conx!rstNetChgpre.Close
+			F.Intrinsic.Control.Else
+				Function.ODBC.conx!rstNetChgpre.Close
+			Function.Intrinsic.Control.EndIf
+		Function.Intrinsic.Control.EndIf
+
+
+		Function.Intrinsic.Control.If(V.ODBC.conx!rstBegpre2.EOF,"=",False)
+			Function.Intrinsic.Control.If(V.ODBC.conx!rstNetChgpre2.EOF,"=",False)
+				F.Odbc.conx!rstBegpre2.Set!AMT_NET_CHANGE_[V.Local.i](V.ODBC.conx!rstNetChgpre2.FieldValString!NET_CHANGE)
+				F.ODBC.conx!rstBegpre2.Update
+				Function.ODBC.conx!rstNetChgpre2.Close
+			F.Intrinsic.Control.Else
+				Function.ODBC.conx!rstNetChgpre2.Close
+			Function.Intrinsic.Control.EndIf
+		Function.Intrinsic.Control.EndIf
+
+
+		Function.Intrinsic.Control.If(V.ODBC.conx!rstBegpre3.EOF,"=",False)
+			Function.Intrinsic.Control.If(V.ODBC.conx!rstNetChgpre3.EOF,"=",False)
+				F.Odbc.conx!rstBegpre3.Set!AMT_NET_CHANGE_[V.Local.i](V.ODBC.conx!rstNetChgpre3.FieldValString!NET_CHANGE)
+				F.ODBC.conx!rstBegpre3.Update
+				Function.ODBC.conx!rstNetChgpre3.Close
+			Function.Intrinsic.Control.Else
+				Function.ODBC.conx!rstNetChgpre3.Close
+			Function.Intrinsic.Control.EndIf
+		Function.Intrinsic.Control.EndIf
+
+
+	Function.Intrinsic.Control.Next(V.Local.i)
+
+	F.ODBC.conx!rstBegcur.MoveNext
+	F.ODBC.conx!rstBegpre.MoveNext
+	F.ODBC.conx!rstBegpre2.MoveNext
+	F.ODBC.conx!rstBegpre3.MoveNext
+
+Function.Intrinsic.Control.Loop
+
+F.ODBC.conx!rstBegcur.Close
+F.ODBC.conx!rstBegpre.Close
+F.ODBC.conx!rstBegpre2.Close
+F.ODBC.conx!rstBegpre3.Close
+F.Intrinsic.UI.CloseWaitDialog
+
+'F.Intrinsic.UI.Msgbox("GL Master Update Complete!","GL Master Update")
+
+F.Intrinsic.Control.End
+
+
+	
+Program.Sub.Main.End
+
+
